@@ -322,11 +322,11 @@ glimpse(dados_sm_uni)
 
 ```{r}
 # c.
-dados_sm_filtro <-
+dados_sm_filtro_na <-
   dados_sm_uni %>%
   filter(., is.na(tmax) | is.na(tmin))
 
-glimpse(dados_sm_filtro)
+glimpse(dados_sm_filtro_na)
 
 ```
 
@@ -357,7 +357,7 @@ $ tmin <dbl> 16.0, 13.5, 18.2, 24.1, 19.0, 13.7, 16.3, 22.3, 21.0, 14.1, 17.2, 2
 # verificando a estrutura dos dados
 str(dados_zorra)
 
-# coersão do data.frame para tibble
+# coersão do data frame para tibble
 dados_zorra_tb <- as_tibble(dados_zorra)
 (dados_zorra_tb)
 
@@ -479,23 +479,28 @@ glimpse(datas_left)
 9. Utilizando os dados horários de estações meteorológicas automáticas (EMA) do RS (`dados_rs_08_16`), determine a data inicial, final e o período de dados (em anos) de cada estação (identificada pela variável `site`).
 
 
-```{r, eval=FALSE}
+```{r}
 # estrutura dos dados
 str(dados_rs_08_16)
 
-# coersão do data frame para tibble
-dados_rs_08_16_tb <- as_tibble(dados_rs_08_16)
-(dados_rs_08_16_tb)
-
+nh <- 8760 # quantidade de horas em um ano
 # agrupando em função de cada estação
-dados_rs_new <- dados_rs_08_16_tb %>%
+dados_rs_new <- 
+  dados_rs_08_16 %>%
   group_by(., site) %>%
   summarise(.,
             inicio = date[which.min(date)],
             final = date[which.max(date)],
-            # conta quantos anos tem
-            period = n()/8760) %>%
-  glimpse(dados_rs_new)
+            period = n()/nh,
+            .groups = 'drop')
+
+#head(dados_rs_new, n= 5)
+
+dados_rs_dec <- 
+  dados_rs_new %>%
+  arrange(., desc(site))
+
+glimpse(dados_rs_dec)
 
 ```
 
@@ -508,18 +513,16 @@ dados_rs_new <- dados_rs_08_16_tb %>%
 
 ```{r}
 
-dados_rs_08_16_tb <- as_tibble(dados_rs_08_16)
-
 dados_rs_novo <-
-  dados_rs_08_16_tb %>%
+  dados_rs_08_16 %>%
   group_by(., site) %>%
   summarise(.,
              tair = as.integer((sum(!is.na(tair))/n())*100),
              rh = as.integer((sum(!is.na(rh))/n())*100),
              prec = as.integer((sum(!is.na(prec))/n())*100),
              rg = as.integer((sum(!is.na(rg))/n())*100),
-             ws = as.integer((sum(!is.na(ws))/n())*100)
-             )
+             ws = as.integer((sum(!is.na(ws))/n())*100),
+             .groups = 'drop')
 
 glimpse(dados_rs_novo)
 
@@ -556,7 +559,7 @@ glimpse(dados_rs_disp)
 ```{r}
 
 ema_sm <-
-  dados_rs_08_16_tb %>%
+  dados_rs_08_16 %>%
   filter(str_detect(site, "A803")) %>%
   select(., site, date, tair) %>%
   mutate(., hora = hour(date))
@@ -568,8 +571,8 @@ ema_sm_new <-
   group_by(., hora) %>%
   summarise(.,
             tair_med = mean(tair, na.rm = TRUE),
-            tair_disp = (sum(!is.na(tair))/n())*100
-  )
+            tair_disp = (sum(!is.na(tair))/n())*100,
+             .groups = 'drop')
 glimpse(ema_sm_new)
 
 ```
@@ -584,22 +587,24 @@ glimpse(ema_sm_new)
 ```{r}
 # a.
 ema_sm_tair <-
-  dados_rs_08_16_tb %>%
+  dados_rs_08_16 %>%
   filter(str_detect(site, "A803")) %>%
   select(., site, date, tair) %>%
   mutate(., dia = floor_date(date, unit = "day")) 
 
+# elaborando um novo data frame com o dia e a porcentagem de dados disponíveis
 sm_tair <-
   ema_sm_tair %>%
   group_by(., dia) %>%
   summarise(.,
-            tair_val = as.integer((sum(!is.na(tair))/24)*100)
-)
+            tair_val = as.integer((sum(!is.na(tair))/24)*100),
+            .groups = 'drop')
 
-# os dias completos são aqueles com tair_val = 100
+# seleciona os dias com 100 % dos dados
 dias_completos <-
   sm_tair %>%
-  filter(., tair_val==100)
+  filter(., tair_val==100) %>%
+  select(., dia)
   
 glimpse(dias_completos)
 
@@ -620,7 +625,8 @@ freq_tmin <-
   ema_sm_tair  %>% 
   group_by(., dia) %>%
   summarise(.,
-            hh = hora[which.min(tair)])
+            hh = hora[which.min(tair)],
+            .groups = 'drop')
 
 nrow(freq_tmin)
 
@@ -645,5 +651,92 @@ freq_htmin_dec <-
 
 glimpse(freq_htmin_dec)
 
+```
+
+
+---
+
+
+14. Neste exercício aplicaremos um controle de qualidade básico de dados meteorológicos. Você irá verificar se nos dados da EMA de Santa Maria (A803, mesmos dados do item **a** do exercício anterior) ocorreram casos em que a temperatura máxima (mínima) diária foi acima (abaixo) dos recordes históricos registrados pela estação meteorológica convencional do INMET de Santa Maria (site 83936). Os recordes históricos de temperatura máxima e mínima estão disponíveis nos dados `recordes_temp` para cada mês do ano. Você deve obter os casos suspeitos na estrutura conforme abaixo.
+
+```
+# A tibble: 8 x 7
+  date                 tmax  tmin   mes site 
+  <dttm>              <dbl> <dbl> <dbl> <chr>
+1 2009-10-30 00:00:00  35.8  20.4    10 83936
+2 2009-10-31 00:00:00  36.8  21.8    10 83936
+3 2013-12-26 00:00:00  38.3  21.2    12 83936
+4 2014-02-05 00:00:00  38    23.8     2 83936
+5 2014-02-06 00:00:00  38.3  24.4     2 83936
+6 2014-02-07 00:00:00  39.5  23.2     2 83936
+7 2014-02-09 00:00:00  38.3  22.9     2 83936
+8 2014-10-29 00:00:00  36.8  22.4    10 83936
+# ... with 2 more variables: tmin_abs <dbl>,
+#   tmax_abs <dbl>
+```
+
+
+```{r}
+# verificando a estrutura
+str(recordes_temp)
+
+# filtrando o data frame para o site 83936
+recordes <- 
+  recordes_temp %>%
+  filter(site == 83936) %>%
+  select(., month, site, tmin_abs, tmax_abs) %>%
+  rename(., "mes" = month) 
+
+head(recordes, n = 8)
+
+```
+
+
+```{r}
+# com o resultado da questão a), combina-se o data frame "dias completos" com o 
+# data frame "ema_sm_tair" para obter apenas os dias com dados não faltantes
+
+emac <- inner_join(
+  x = dias_completos, 
+  y = ema_sm_tair,
+  by = "dia"
+)
+
+```
+
+
+```{r}
+# trabalhando o novo quadro de dados
+emac_sm <-
+  emac %>%
+  group_by(., dia) %>%
+  select(., site, dia, tair) %>%
+  summarise(.,
+            site_ema = site[which.max(tair)],
+            tmax = tair[which.max(tair)],
+            tmin = tair[which.min(tair)],
+            nobs = n(),
+            .groups = 'drop') %>%
+            mutate(., mes = month(as.POSIXlt(dia, format="%Y-%m-%d"))) %>%
+  select(., site_ema, dia, everything()) %>%
+  rename(., "date" = dia)
+
+```
+
+
+```{r}
+# combinando as matrizes em relação aos meses
+ema_compara <- inner_join(
+  x = emac_sm, 
+  y = recordes,
+  by = "mes"
+)
+
+# filtrando os valores de tmax acima dos valores recordes
+ema_recordes <-
+  ema_compara %>%
+  filter(., tmax > tmax_abs)
+
+glimpse(ema_recordes)
 ```
 

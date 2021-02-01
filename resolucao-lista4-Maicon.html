@@ -904,7 +904,7 @@ str(dados_zorra)</code></pre>
 ##  $ tmin.600 : num  13.5 13.7 14.1 16.2
 ##  $ tmin.1200: num  18.2 16.3 17.2 16.9
 ##  $ tmin.1800: num  24.1 22.3 26 23</code></pre>
-<pre class="r"><code># coersão do data.frame para tibble
+<pre class="r"><code># coersão do data frame para tibble
 dados_zorra_tb &lt;- as_tibble(dados_zorra)
 (dados_zorra_tb)</code></pre>
 <pre><code>## # A tibble: 4 x 9
@@ -1063,39 +1063,55 @@ glimpse(datas_left)</code></pre>
 <li>Utilizando os dados horários de estações meteorológicas automáticas (EMA) do RS (<code>dados_rs_08_16</code>), determine a data inicial, final e o período de dados (em anos) de cada estação (identificada pela variável <code>site</code>).</li>
 </ol>
 <pre class="r"><code># estrutura dos dados
-str(dados_rs_08_16)
-
-# coersão do data frame para tibble
-dados_rs_08_16_tb &lt;- as_tibble(dados_rs_08_16)
-(dados_rs_08_16_tb)
-
+str(dados_rs_08_16)</code></pre>
+<pre><code>## tibble [2,592,096 × 7] (S3: tbl_df/tbl/data.frame)
+##  $ site: chr [1:2592096] &quot;A801&quot; &quot;A801&quot; &quot;A801&quot; &quot;A801&quot; ...
+##  $ date: POSIXct[1:2592096], format: &quot;2007-12-31 21:00:00&quot; &quot;2007-12-31 22:00:00&quot; ...
+##  $ tair: num [1:2592096] 25.4 24.2 23.4 22.6 22.2 ...
+##  $ rh  : num [1:2592096] 74 75 82 90 90 92 93 90 90 90 ...
+##  $ prec: num [1:2592096] 0 0 0 0 0 0 0 0 0 0 ...
+##  $ rg  : num [1:2592096] NA NA NA NA NA ...
+##  $ ws  : num [1:2592096] 1.5 1.6 1.6 1.8 1 1.6 1.4 1.2 0.9 1.2 ...</code></pre>
+<pre class="r"><code>nh &lt;- 8760 # quantidade de horas em um ano
 # agrupando em função de cada estação
-dados_rs_new &lt;- dados_rs_08_16_tb %&gt;%
+dados_rs_new &lt;- 
+  dados_rs_08_16 %&gt;%
   group_by(., site) %&gt;%
   summarise(.,
             inicio = date[which.min(date)],
             final = date[which.max(date)],
-            # conta quantos anos tem
-            period = n()/8760) %&gt;%
-  glimpse(dados_rs_new)</code></pre>
+            period = n()/nh,
+            .groups = &#39;drop&#39;)
+
+#head(dados_rs_new, n= 5)
+
+dados_rs_dec &lt;- 
+  dados_rs_new %&gt;%
+  arrange(., desc(site))
+
+glimpse(dados_rs_dec)</code></pre>
+<pre><code>## Rows: 42
+## Columns: 4
+## $ site   &lt;chr&gt; &quot;A899&quot;, &quot;A897&quot;, &quot;A894&quot;, &quot;A889&quot;, &quot;A886&quot;, &quot;A884&quot;, &quot;A883&quot;, &quot;A882&quot;…
+## $ inicio &lt;dttm&gt; 2008-03-07 21:00:00, 2016-11-23 21:00:00, 2016-06-30 21:00:00…
+## $ final  &lt;dttm&gt; 2016-12-31 20:00:00, 2016-12-31 20:00:00, 2016-12-31 20:00:00…
+## $ period &lt;dbl&gt; 8.3260274, 0.1041096, 0.5041096, 0.5041096, 0.3917808, 2.59452…</code></pre>
 <hr />
 <ol start="10" style="list-style-type: decimal">
 <li>Determine a porcentagem de dados válidos (ou seja, não faltantes) de cada variável para cada EMA. Aproxime os valores para números inteiros.</li>
 </ol>
-<pre class="r"><code>dados_rs_08_16_tb &lt;- as_tibble(dados_rs_08_16)
-
-dados_rs_novo &lt;-
-  dados_rs_08_16_tb %&gt;%
+<pre class="r"><code>dados_rs_novo &lt;-
+  dados_rs_08_16 %&gt;%
   group_by(., site) %&gt;%
   summarise(.,
              tair = as.integer((sum(!is.na(tair))/n())*100),
              rh = as.integer((sum(!is.na(rh))/n())*100),
              prec = as.integer((sum(!is.na(prec))/n())*100),
              rg = as.integer((sum(!is.na(rg))/n())*100),
-             ws = as.integer((sum(!is.na(ws))/n())*100)
-             )</code></pre>
-<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
-<pre class="r"><code>glimpse(dados_rs_novo)</code></pre>
+             ws = as.integer((sum(!is.na(ws))/n())*100),
+             .groups = &#39;drop&#39;)
+
+glimpse(dados_rs_novo)</code></pre>
 <pre><code>## Rows: 42
 ## Columns: 6
 ## $ site &lt;chr&gt; &quot;A801&quot;, &quot;A802&quot;, &quot;A803&quot;, &quot;A804&quot;, &quot;A805&quot;, &quot;A808&quot;, &quot;A809&quot;, &quot;A810&quot;, …
@@ -1131,7 +1147,7 @@ glimpse(dados_rs_disp)</code></pre>
 <li>Para a EMA de Santa Maria (ver <code>info_emas_rs_08_16</code>) obtenha o ciclo diurno médio da temperatura do ar e a porcentagem de dados válidos usados para compor a <code>tair</code> média de cada hora.</li>
 </ol>
 <pre class="r"><code>ema_sm &lt;-
-  dados_rs_08_16_tb %&gt;%
+  dados_rs_08_16 %&gt;%
   filter(str_detect(site, &quot;A803&quot;)) %&gt;%
   select(., site, date, tair) %&gt;%
   mutate(., hora = hour(date))
@@ -1143,10 +1159,9 @@ ema_sm_new &lt;-
   group_by(., hora) %&gt;%
   summarise(.,
             tair_med = mean(tair, na.rm = TRUE),
-            tair_disp = (sum(!is.na(tair))/n())*100
-  )</code></pre>
-<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
-<pre class="r"><code>glimpse(ema_sm_new)</code></pre>
+            tair_disp = (sum(!is.na(tair))/n())*100,
+             .groups = &#39;drop&#39;)
+glimpse(ema_sm_new)</code></pre>
 <pre><code>## Rows: 24
 ## Columns: 3
 ## $ hora      &lt;int&gt; 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 1…
@@ -1158,33 +1173,33 @@ ema_sm_new &lt;-
 </ol>
 <pre class="r"><code># a.
 ema_sm_tair &lt;-
-  dados_rs_08_16_tb %&gt;%
+  dados_rs_08_16 %&gt;%
   filter(str_detect(site, &quot;A803&quot;)) %&gt;%
   select(., site, date, tair) %&gt;%
   mutate(., dia = floor_date(date, unit = &quot;day&quot;)) 
 
+# elaborando um novo data frame com o dia e a porcentagem de dados disponíveis
 sm_tair &lt;-
   ema_sm_tair %&gt;%
   group_by(., dia) %&gt;%
   summarise(.,
-            tair_val = as.integer((sum(!is.na(tair))/24)*100)
-)</code></pre>
-<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
-<pre class="r"><code># os dias completos são aqueles com tair_val = 100
+            tair_val = as.integer((sum(!is.na(tair))/24)*100),
+            .groups = &#39;drop&#39;)
+
+# seleciona os dias com 100 % dos dados
 dias_completos &lt;-
   sm_tair %&gt;%
-  filter(., tair_val==100)
+  filter(., tair_val==100) %&gt;%
+  select(., dia)
   
 glimpse(dias_completos)</code></pre>
 <pre><code>## Rows: 2,945
-## Columns: 2
-## $ dia      &lt;dttm&gt; 2008-01-01, 2008-01-02, 2008-01-03, 2008-01-04, 2008-01-05,…
-## $ tair_val &lt;int&gt; 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, …</code></pre>
+## Columns: 1
+## $ dia &lt;dttm&gt; 2008-01-01, 2008-01-02, 2008-01-03, 2008-01-04, 2008-01-05, 2008…</code></pre>
 <pre class="r"><code>glimpse(tail(dias_completos))</code></pre>
 <pre><code>## Rows: 6
-## Columns: 2
-## $ dia      &lt;dttm&gt; 2016-12-25, 2016-12-26, 2016-12-27, 2016-12-28, 2016-12-29,…
-## $ tair_val &lt;int&gt; 100, 100, 100, 100, 100, 100</code></pre>
+## Columns: 1
+## $ dia &lt;dttm&gt; 2016-12-25, 2016-12-26, 2016-12-27, 2016-12-28, 2016-12-29, 2016…</code></pre>
 <pre class="r"><code># b.
 ema_sm_tair &lt;- 
   ema_sm_tair  %&gt;% 
@@ -1195,9 +1210,10 @@ freq_tmin &lt;-
   ema_sm_tair  %&gt;% 
   group_by(., dia) %&gt;%
   summarise(.,
-            hh = hora[which.min(tair)])</code></pre>
-<pre><code>## `summarise()` regrouping output by &#39;dia&#39; (override with `.groups` argument)</code></pre>
-<pre class="r"><code>nrow(freq_tmin)</code></pre>
+            hh = hora[which.min(tair)],
+            .groups = &#39;drop&#39;)
+
+nrow(freq_tmin)</code></pre>
 <pre><code>## [1] 3031</code></pre>
 <pre class="r"><code># determinando para cada hora quantas vezes a temperatura mínima ocorreu
 freq_htmin &lt;-
@@ -1224,6 +1240,95 @@ glimpse(freq_htmin_dec)</code></pre>
 ## Groups: h_tmin [24]
 ## $ h_tmin &lt;int&gt; 6, 7, 23, 5, 8, 4, 3, 2, 0, 1, 22, 9, 21, 10, 20, 11, 12, 14, …
 ## $ n      &lt;int&gt; 730, 568, 452, 317, 205, 192, 126, 94, 78, 64, 52, 36, 30, 17,…</code></pre>
+<hr />
+<ol start="14" style="list-style-type: decimal">
+<li>Neste exercício aplicaremos um controle de qualidade básico de dados meteorológicos. Você irá verificar se nos dados da EMA de Santa Maria (A803, mesmos dados do item <strong>a</strong> do exercício anterior) ocorreram casos em que a temperatura máxima (mínima) diária foi acima (abaixo) dos recordes históricos registrados pela estação meteorológica convencional do INMET de Santa Maria (site 83936). Os recordes históricos de temperatura máxima e mínima estão disponíveis nos dados <code>recordes_temp</code> para cada mês do ano. Você deve obter os casos suspeitos na estrutura conforme abaixo.</li>
+</ol>
+<pre><code># A tibble: 8 x 7
+  date                 tmax  tmin   mes site 
+  &lt;dttm&gt;              &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;
+1 2009-10-30 00:00:00  35.8  20.4    10 83936
+2 2009-10-31 00:00:00  36.8  21.8    10 83936
+3 2013-12-26 00:00:00  38.3  21.2    12 83936
+4 2014-02-05 00:00:00  38    23.8     2 83936
+5 2014-02-06 00:00:00  38.3  24.4     2 83936
+6 2014-02-07 00:00:00  39.5  23.2     2 83936
+7 2014-02-09 00:00:00  38.3  22.9     2 83936
+8 2014-10-29 00:00:00  36.8  22.4    10 83936
+# ... with 2 more variables: tmin_abs &lt;dbl&gt;,
+#   tmax_abs &lt;dbl&gt;</code></pre>
+<pre class="r"><code># verificando a estrutura
+str(recordes_temp)</code></pre>
+<pre><code>## tibble [3,685 × 4] (S3: tbl_df/tbl/data.frame)
+##  $ site    : chr [1:3685] &quot;82024&quot; &quot;82024&quot; &quot;82024&quot; &quot;82024&quot; ...
+##  $ month   : int [1:3685] 1 2 4 5 6 7 8 9 10 11 ...
+##  $ tmin_abs: num [1:3685] 19.5 20 16.8 19 18.6 17.6 19.8 15.2 10.2 13.2 ...
+##  $ tmax_abs: num [1:3685] 36.1 37.6 37.4 39.5 34.3 34 34.8 37.2 37.7 36.8 ...</code></pre>
+<pre class="r"><code># filtrando o data frame para o site 83936
+recordes &lt;- 
+  recordes_temp %&gt;%
+  filter(site == 83936) %&gt;%
+  select(., month, site, tmin_abs, tmax_abs) %&gt;%
+  rename(., &quot;mes&quot; = month) 
+
+head(recordes, n = 8)</code></pre>
+<pre><code>## # A tibble: 8 x 4
+##     mes site  tmin_abs tmax_abs
+##   &lt;int&gt; &lt;chr&gt;    &lt;dbl&gt;    &lt;dbl&gt;
+## 1     1 83936     11.4     39.3
+## 2     2 83936     10.4     37.6
+## 3     4 83936      3       35  
+## 4     5 83936      0.1     32.4
+## 5     6 83936     -2.6     30.9
+## 6     7 83936     -2.2     30.7
+## 7     8 83936     -0.6     33.3
+## 8     9 83936      0.2     35.4</code></pre>
+<pre class="r"><code># com o resultado da questão a), combina-se o data frame &quot;dias completos&quot; com o 
+# data frame &quot;ema_sm_tair&quot; para obter apenas os dias com dados não faltantes
+
+emac &lt;- inner_join(
+  x = dias_completos, 
+  y = ema_sm_tair,
+  by = &quot;dia&quot;
+)</code></pre>
+<pre class="r"><code># trabalhando o novo quadro de dados
+emac_sm &lt;-
+  emac %&gt;%
+  group_by(., dia) %&gt;%
+  select(., site, dia, tair) %&gt;%
+  summarise(.,
+            site_ema = site[which.max(tair)],
+            tmax = tair[which.max(tair)],
+            tmin = tair[which.min(tair)],
+            nobs = n(),
+            .groups = &#39;drop&#39;) %&gt;%
+            mutate(., mes = month(as.POSIXlt(dia, format=&quot;%Y-%m-%d&quot;))) %&gt;%
+  select(., site_ema, dia, everything()) %&gt;%
+  rename(., &quot;date&quot; = dia)</code></pre>
+<pre class="r"><code># combinando as matrizes em relação aos meses
+ema_compara &lt;- inner_join(
+  x = emac_sm, 
+  y = recordes,
+  by = &quot;mes&quot;
+)
+
+# filtrando os valores de tmax acima dos valores recordes
+ema_recordes &lt;-
+  ema_compara %&gt;%
+  filter(., tmax &gt; tmax_abs)
+
+glimpse(ema_recordes)</code></pre>
+<pre><code>## Rows: 8
+## Columns: 9
+## $ site_ema &lt;chr&gt; &quot;A803&quot;, &quot;A803&quot;, &quot;A803&quot;, &quot;A803&quot;, &quot;A803&quot;, &quot;A803&quot;, &quot;A803&quot;, &quot;A80…
+## $ date     &lt;dttm&gt; 2009-10-30, 2009-10-31, 2013-12-26, 2014-02-05, 2014-02-06,…
+## $ tmax     &lt;dbl&gt; 35.80, 36.80, 38.35, 38.00, 38.30, 39.50, 38.30, 36.75
+## $ tmin     &lt;dbl&gt; 20.40, 21.80, 21.20, 23.85, 24.35, 23.20, 22.90, 22.45
+## $ nobs     &lt;int&gt; 24, 24, 24, 24, 24, 24, 24, 24
+## $ mes      &lt;dbl&gt; 10, 10, 12, 2, 2, 2, 2, 10
+## $ site     &lt;chr&gt; &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936…
+## $ tmin_abs &lt;dbl&gt; 3.6, 3.6, 7.2, 10.4, 10.4, 10.4, 10.4, 3.6
+## $ tmax_abs &lt;dbl&gt; 35.5, 35.5, 38.3, 37.6, 37.6, 37.6, 37.6, 35.5</code></pre>
 </div>
 
 

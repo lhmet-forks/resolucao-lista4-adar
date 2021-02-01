@@ -131,14 +131,13 @@ precd_tbl_long <- pivot_longer(
 head(precd_tbl_long, n = 5)
 
 # removendo o character "X' da coluna date 
-precd_tbl_long$date <- gsub("X", "", precd_tbl_long$date)
+precd_tbl_long$date <- str_replace_all(precd_tbl_long$date, pattern = "[X]", "")
 
 # outra forma de remover:
-#precd_tbl_long$date <- str_replace_all(precd_tbl_long$date, pattern = "[X]", "")
+#precd_tbl_long$date <- gsub("X", "", precd_tbl_long$date)
 
-
+# convertendo a coluna das datas para o formato date
 precd_tbl_long$date <- format(as.Date(x = precd_tbl_long$date, "%Y.%m.%d"), format = "%Y-%m-%d")
-
 precd_tbl_long$date <- as.Date(precd_tbl_long$date)
 
 # verificando a estrutura do quadro de dados
@@ -157,7 +156,7 @@ glimpse(precd_tbl_long)
 # verificando a estrutura dos dados
 str(poluentes)
 
-# coersão do data.frame para tibble
+# coersão do data frame para tibble
 poluentes_tbl <- as_tibble(poluentes)
 (poluentes_tbl)
 
@@ -167,16 +166,17 @@ poluentes_tbl_w <- pivot_wider(
   names_from = poluente,
   values_from = duracao
 )
+glimpse(poluentes_tbl_w)
 
 # convertendo as colunas para numérico
-poluentes_tbl_w <- transform(
-  poluentes_tbl_w,
-  ozone = parse_number(ozone),
-  so2 = parse_number(so2),
-  no2 = parse_number(no2)
-)
+#poluentes_arrumado <- transform(
+#  poluentes_tbl_w,
+#  ozone = parse_number(ozone),
+#  so2 = parse_number(so2),
+#  no2 = parse_number(no2)
+#)
 # verificando o data frame arrumado
-glimpse(poluentes_tbl_w)
+#glimpse(poluentes_arrumado)
 
 ```
 
@@ -211,10 +211,11 @@ glimpse(poluentes_tbl_w)
 # verificando a estrutura dos dados
 str(dados_sm)
 
+# coersão para tibble
 dados_sm_tbl <- as_tibble(dados_sm)
 
 # reestruturando os dados em uma nova tabela
-dados_sm_tbl_lg <- pivot_longer(
+dados_sm_long <- pivot_longer(
   data = dados_sm_tbl,
   cols = c(5:35),
   names_to = "day",
@@ -222,16 +223,16 @@ dados_sm_tbl_lg <- pivot_longer(
 )
 
 # verificando os dados
-glimpse(dados_sm_tbl_lg)
+glimpse(dados_sm_long)
 
 # os dados ainda não estão arrumados, é preciso separar a coluna element
-dados_sm_tbl_w <- pivot_wider(
-  data = dados_sm_tbl_lg,
+dados_sm_wider <- pivot_wider(
+  data = dados_sm_long,
   names_from = element,
   values_from = value
 )
 # verificando o data frame arrumado
-glimpse(dados_sm_tbl_w)
+glimpse(dados_sm_wider)
 ```
 
 
@@ -248,17 +249,21 @@ $ tmin  <dbl> 17.9, 21.4, 21.6, 23.4, 23.2, 21.8, 18.0, 19.4...
 ```
 
 ```{r}
+# removendo o caracter "d" da coluna "day" e convertendo para inteiro
+dados_sm_wider$day <- str_replace(dados_sm_wider$day, pattern = "[d]", replacement = "") 
 
-# arrumando os dados cronologicamente
-dados_sm_tbl_w %>% select(id, year, everything())
+dados_sm_wider$day <- as.integer(dados_sm_wider$day)
 
-# removendo o character "d" da coluna "day" e convertendo para inteiro
-dados_sm_tbl_w$day <- str_replace(dados_sm_tbl_w$day, pattern = "[d]", replacement = "") 
+# ordenando as colunas
+dados_sm_wider <-
+  dados_sm_wider %>%
+  select(id, year, everything())
 
-dados_sm_tbl_w$day <- as.integer(dados_sm_tbl_w$day)
+# organizando os dados em ordem cronológica
+dados_sm_wider <- dados_sm_wider[order(dados_sm_wider$year),]
 
 # verificando o data frame
-glimpse(dados_sm_tbl_w)
+glimpse(dados_sm_wider)
 
 ```
 
@@ -267,11 +272,9 @@ glimpse(dados_sm_tbl_w)
    
 ```{r}
 # Acrescentando uma nova variável tmed
-dados_sm_m <- mutate(dados_sm_tbl_w, tmed = (tmax + tmin)/2)
-
-# outra forma
-#dados_sm_tbl_w %>%
-#  mutate(., tmed = (tmax + tmin)/2)
+dados_sm_m <- 
+  dados_sm_wider %>%
+  mutate(., tmed = (tmax + tmin)/2)
 
 glimpse(dados_sm_m)
 ```
@@ -289,7 +292,8 @@ glimpse(dados_sm_m)
 ```{r}
 # a.
 
-dados_sm_nome = dados_sm_m %>%
+dados_sm_nome <-
+  dados_sm_m %>%
   rename(., 
        "ano" = year,
        "mes" = month,
@@ -312,6 +316,17 @@ dados_sm_uni <- unite(
 dados_sm_uni$data <- as.Date(dados_sm_uni$data)
 # verificando o data frame
 glimpse(dados_sm_uni)
+
+```
+
+
+```{r}
+# c.
+dados_sm_filtro <-
+  dados_sm_uni %>%
+  filter(., is.na(tmax) | is.na(tmin))
+
+glimpse(dados_sm_filtro)
 
 ```
 
@@ -431,29 +446,204 @@ datas_obs_tb <- as_tibble(datas_obs)
 
 ```{r}
 # a)
-datas_merj <- full_join(
+datas_full <- full_join(
   x = datas_comp_tb, 
   y = datas_obs_tb,
   by = "date")
 
-datas_merj <- datas_merj[order(as.Date(datas_merj$date, format="%Y-%m/%d")),]
+datas_full <- datas_full[order(as.Date(datas_full$date, format="%Y-%m/%d")),]
 
-glimpse(datas_merj)
+glimpse(datas_full)
 
-head(datas_merj)
 ```
   
   
 ```{r}
 # b)
 
-datas_merj_left <- left_join(
+datas_left <- left_join(
   x = datas_comp_tb, 
   y = datas_obs_tb,
   by = "date")
 
-glimpse(datas_merj_left)
+datas_left <- datas_left[order(as.Date(datas_left$date, format="%Y-%m/%d")),]
 
-(datas_merj_left)
-# Os dados já estão em ordem cronológica
+glimpse(datas_left)
+
 ```
+
+
+---
+
+
+9. Utilizando os dados horários de estações meteorológicas automáticas (EMA) do RS (`dados_rs_08_16`), determine a data inicial, final e o período de dados (em anos) de cada estação (identificada pela variável `site`).
+
+
+```{r, eval=FALSE}
+# estrutura dos dados
+str(dados_rs_08_16)
+
+# coersão do data frame para tibble
+dados_rs_08_16_tb <- as_tibble(dados_rs_08_16)
+(dados_rs_08_16_tb)
+
+# agrupando em função de cada estação
+dados_rs_new <- dados_rs_08_16_tb %>%
+  group_by(., site) %>%
+  summarise(.,
+            inicio = date[which.min(date)],
+            final = date[which.max(date)],
+            # conta quantos anos tem
+            period = n()/8760) %>%
+  glimpse(dados_rs_new)
+
+```
+
+
+---
+
+
+10. Determine a porcentagem de dados válidos (ou seja, não faltantes) de cada variável para cada EMA. Aproxime os valores para números inteiros.
+
+
+```{r}
+
+dados_rs_08_16_tb <- as_tibble(dados_rs_08_16)
+
+dados_rs_novo <-
+  dados_rs_08_16_tb %>%
+  group_by(., site) %>%
+  summarise(.,
+             tair = as.integer((sum(!is.na(tair))/n())*100),
+             rh = as.integer((sum(!is.na(rh))/n())*100),
+             prec = as.integer((sum(!is.na(prec))/n())*100),
+             rg = as.integer((sum(!is.na(rg))/n())*100),
+             ws = as.integer((sum(!is.na(ws))/n())*100)
+             )
+
+glimpse(dados_rs_novo)
+
+```
+
+
+---
+
+
+11. Com o resultado da questão anterior, adicione uma variável indicativa da porcentagem média de observações válidas de todas variáveis. Ordene esta tabela em ordem decrescente da disponibilidade média de observações.
+
+
+```{r}
+
+dados_rs_disp <-
+  dados_rs_novo %>%
+  group_by(., site) %>%
+  mutate(.,
+         disp_med = (tair+rh+prec+rg+ws)/5) %>%
+  arrange(., desc(disp_med))
+  
+glimpse(dados_rs_disp)
+  
+  
+```
+
+
+---
+
+
+12. Para a EMA de Santa Maria (ver `info_emas_rs_08_16`) obtenha o ciclo diurno médio da temperatura do ar e a porcentagem de dados válidos usados para compor a `tair` média de cada hora. 
+
+
+```{r}
+
+ema_sm <-
+  dados_rs_08_16_tb %>%
+  filter(str_detect(site, "A803")) %>%
+  select(., site, date, tair) %>%
+  mutate(., hora = hour(date))
+
+#glimpse(ema_sm)
+
+ema_sm_new <-
+  ema_sm %>%
+  group_by(., hora) %>%
+  summarise(.,
+            tair_med = mean(tair, na.rm = TRUE),
+            tair_disp = (sum(!is.na(tair))/n())*100
+  )
+glimpse(ema_sm_new)
+
+```
+
+
+---
+
+
+13. Com os dados de temperatura do ar (`tair`) filtrados para EMA de Santa Maria (a) selecione somente os dias observações válidas nas 24 horas (dias completos, ou seja, sem nenhuma falha nas 24 h). A partir destes dados (b) obtenha a frequência de ocorrência da temperatura mínima para cada horário do dia. (c) Apresente a tabela de resultados em ordem decrescente da frequência de ocorrência.
+
+
+```{r}
+# a.
+ema_sm_tair <-
+  dados_rs_08_16_tb %>%
+  filter(str_detect(site, "A803")) %>%
+  select(., site, date, tair) %>%
+  mutate(., dia = floor_date(date, unit = "day")) 
+
+sm_tair <-
+  ema_sm_tair %>%
+  group_by(., dia) %>%
+  summarise(.,
+            tair_val = as.integer((sum(!is.na(tair))/24)*100)
+)
+
+# os dias completos são aqueles com tair_val = 100
+dias_completos <-
+  sm_tair %>%
+  filter(., tair_val==100)
+  
+glimpse(dias_completos)
+
+glimpse(tail(dias_completos))
+
+```
+
+
+```{r}
+
+# b.
+ema_sm_tair <- 
+  ema_sm_tair  %>% 
+  mutate(., hora = hour(date)) 
+
+# determinando para cada dia o horário em que a temperatura mínima ocorreu
+freq_tmin <-
+  ema_sm_tair  %>% 
+  group_by(., dia) %>%
+  summarise(.,
+            hh = hora[which.min(tair)])
+
+nrow(freq_tmin)
+
+# determinando para cada hora quantas vezes a temperatura mínima ocorreu
+freq_htmin <-
+  freq_tmin  %>% 
+  group_by(., hh) %>%
+  count(hh) %>%
+  rename(., "h_tmin" = hh)
+
+glimpse(freq_htmin)
+
+```
+
+
+```{r}
+# c.
+# ordem decrescente da frequência de ocorrência
+freq_htmin_dec <- 
+  freq_htmin %>%
+  arrange(., desc(n))
+
+glimpse(freq_htmin_dec)
+
+```
+

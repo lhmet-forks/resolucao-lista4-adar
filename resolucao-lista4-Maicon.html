@@ -545,8 +545,6 @@ soi_tbl_long &lt;- transform(soi_tbl_long, mes = as.integer(mes))
 
 # organizando os dados em ordem cronológica
 soi_tbl_long &lt;- soi_tbl_long[order(soi_tbl_long$year),]
-#  soi_tbl_long %&gt;%
-#  arrange(., year)
 
 # verificando a estrutura do quadro de dados
 glimpse(soi_tbl_long)</code></pre>
@@ -608,14 +606,13 @@ head(precd_tbl_long, n = 5)</code></pre>
 ## 4 -60.6  5.12 X2010.01.04 0.448
 ## 5 -60.6  5.12 X2010.01.05 2.35</code></pre>
 <pre class="r"><code># removendo o character &quot;X&#39; da coluna date 
-precd_tbl_long$date &lt;- gsub(&quot;X&quot;, &quot;&quot;, precd_tbl_long$date)
+precd_tbl_long$date &lt;- str_replace_all(precd_tbl_long$date, pattern = &quot;[X]&quot;, &quot;&quot;)
 
 # outra forma de remover:
-#precd_tbl_long$date &lt;- str_replace_all(precd_tbl_long$date, pattern = &quot;[X]&quot;, &quot;&quot;)
+#precd_tbl_long$date &lt;- gsub(&quot;X&quot;, &quot;&quot;, precd_tbl_long$date)
 
-
+# convertendo a coluna das datas para o formato date
 precd_tbl_long$date &lt;- format(as.Date(x = precd_tbl_long$date, &quot;%Y.%m.%d&quot;), format = &quot;%Y-%m-%d&quot;)
-
 precd_tbl_long$date &lt;- as.Date(precd_tbl_long$date)
 
 # verificando a estrutura do quadro de dados
@@ -636,7 +633,7 @@ str(poluentes)</code></pre>
 ##  $ poluente: chr [1:4] &quot;ozone&quot; &quot;so2&quot; &quot;ozone&quot; &quot;no2&quot;
 ##  $ duracao : chr [1:4] &quot;1h&quot; &quot;1h&quot; &quot;8h&quot; &quot;1h&quot;
 ##  $ estacao : int [1:4] 1 1 2 4</code></pre>
-<pre class="r"><code># coersão do data.frame para tibble
+<pre class="r"><code># coersão do data frame para tibble
 poluentes_tbl &lt;- as_tibble(poluentes)
 (poluentes_tbl)</code></pre>
 <pre><code>## # A tibble: 4 x 3
@@ -652,22 +649,22 @@ poluentes_tbl_w &lt;- pivot_wider(
   names_from = poluente,
   values_from = duracao
 )
-
-# convertendo as colunas para numérico
-poluentes_tbl_w &lt;- transform(
-  poluentes_tbl_w,
-  ozone = parse_number(ozone),
-  so2 = parse_number(so2),
-  no2 = parse_number(no2)
-)
-# verificando o data frame arrumado
 glimpse(poluentes_tbl_w)</code></pre>
 <pre><code>## Rows: 3
 ## Columns: 4
 ## $ estacao &lt;int&gt; 1, 2, 4
-## $ ozone   &lt;dbl&gt; 1, 8, NA
-## $ so2     &lt;dbl&gt; 1, NA, NA
-## $ no2     &lt;dbl&gt; NA, NA, 1</code></pre>
+## $ ozone   &lt;chr&gt; &quot;1h&quot;, &quot;8h&quot;, NA
+## $ so2     &lt;chr&gt; &quot;1h&quot;, NA, NA
+## $ no2     &lt;chr&gt; NA, NA, &quot;1h&quot;</code></pre>
+<pre class="r"><code># convertendo as colunas para numérico
+#poluentes_arrumado &lt;- transform(
+#  poluentes_tbl_w,
+#  ozone = parse_number(ozone),
+#  so2 = parse_number(so2),
+#  no2 = parse_number(no2)
+#)
+# verificando o data frame arrumado
+#glimpse(poluentes_arrumado)</code></pre>
 <hr />
 <ol start="4" style="list-style-type: decimal">
 <li><ol style="list-style-type: lower-alpha">
@@ -731,10 +728,11 @@ str(dados_sm)</code></pre>
 ##  $ d29    : num [1:12] 35.8 20 NA NA 28.8 20 24.4 6.7 19.4 15.3 ...
 ##  $ d30    : num [1:12] 34.4 22.2 NA NA 29.6 19.4 26.2 6.1 14.6 14.6 ...
 ##  $ d31    : num [1:12] 34.8 23.2 NA NA 33.6 15.5 NA NA 17 7.8 ...</code></pre>
-<pre class="r"><code>dados_sm_tbl &lt;- as_tibble(dados_sm)
+<pre class="r"><code># coersão para tibble
+dados_sm_tbl &lt;- as_tibble(dados_sm)
 
 # reestruturando os dados em uma nova tabela
-dados_sm_tbl_lg &lt;- pivot_longer(
+dados_sm_long &lt;- pivot_longer(
   data = dados_sm_tbl,
   cols = c(5:35),
   names_to = &quot;day&quot;,
@@ -742,7 +740,7 @@ dados_sm_tbl_lg &lt;- pivot_longer(
 )
 
 # verificando os dados
-glimpse(dados_sm_tbl_lg)</code></pre>
+glimpse(dados_sm_long)</code></pre>
 <pre><code>## Rows: 372
 ## Columns: 6
 ## $ id      &lt;chr&gt; &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;…
@@ -752,13 +750,13 @@ glimpse(dados_sm_tbl_lg)</code></pre>
 ## $ day     &lt;chr&gt; &quot;d1&quot;, &quot;d2&quot;, &quot;d3&quot;, &quot;d4&quot;, &quot;d5&quot;, &quot;d6&quot;, &quot;d7&quot;, &quot;d8&quot;, &quot;d9&quot;, &quot;d10&quot;, …
 ## $ value   &lt;dbl&gt; 32.6, 33.4, 24.8, 29.4, 27.0, 24.4, 29.6, 29.4, 29.6, 31.8, 3…</code></pre>
 <pre class="r"><code># os dados ainda não estão arrumados, é preciso separar a coluna element
-dados_sm_tbl_w &lt;- pivot_wider(
-  data = dados_sm_tbl_lg,
+dados_sm_wider &lt;- pivot_wider(
+  data = dados_sm_long,
   names_from = element,
   values_from = value
 )
 # verificando o data frame arrumado
-glimpse(dados_sm_tbl_w)</code></pre>
+glimpse(dados_sm_wider)</code></pre>
 <pre><code>## Rows: 186
 ## Columns: 6
 ## $ id    &lt;chr&gt; &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, …
@@ -778,34 +776,26 @@ $ month &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1...
 $ day   &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,...
 $ tmax  &lt;dbl&gt; 32.6, 33.4, 24.8, 29.4, 27.0, 24.4, 29.6, 29.4...
 $ tmin  &lt;dbl&gt; 17.9, 21.4, 21.6, 23.4, 23.2, 21.8, 18.0, 19.4...</code></pre>
-<pre class="r"><code># arrumando os dados cronologicamente
-dados_sm_tbl_w %&gt;% select(id, year, everything())</code></pre>
-<pre><code>## # A tibble: 186 x 6
-##    id     year month day    tmax  tmin
-##    &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt;
-##  1 83936  2010     1 d1     32.6  17.9
-##  2 83936  2010     1 d2     33.4  21.4
-##  3 83936  2010     1 d3     24.8  21.6
-##  4 83936  2010     1 d4     29.4  23.4
-##  5 83936  2010     1 d5     27    23.2
-##  6 83936  2010     1 d6     24.4  21.8
-##  7 83936  2010     1 d7     29.6  18  
-##  8 83936  2010     1 d8     29.4  19.4
-##  9 83936  2010     1 d9     29.6  21.8
-## 10 83936  2010     1 d10    31.8  22.4
-## # … with 176 more rows</code></pre>
-<pre class="r"><code># removendo o character &quot;d&quot; da coluna &quot;day&quot; e convertendo para inteiro
-dados_sm_tbl_w$day &lt;- str_replace(dados_sm_tbl_w$day, pattern = &quot;[d]&quot;, replacement = &quot;&quot;) 
+<pre class="r"><code># removendo o caracter &quot;d&quot; da coluna &quot;day&quot; e convertendo para inteiro
+dados_sm_wider$day &lt;- str_replace(dados_sm_wider$day, pattern = &quot;[d]&quot;, replacement = &quot;&quot;) 
 
-dados_sm_tbl_w$day &lt;- as.integer(dados_sm_tbl_w$day)
+dados_sm_wider$day &lt;- as.integer(dados_sm_wider$day)
+
+# ordenando as colunas
+dados_sm_wider &lt;-
+  dados_sm_wider %&gt;%
+  select(id, year, everything())
+
+# organizando os dados em ordem cronológica
+dados_sm_wider &lt;- dados_sm_wider[order(dados_sm_wider$year),]
 
 # verificando o data frame
-glimpse(dados_sm_tbl_w)</code></pre>
+glimpse(dados_sm_wider)</code></pre>
 <pre><code>## Rows: 186
 ## Columns: 6
 ## $ id    &lt;chr&gt; &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, …
-## $ month &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
 ## $ year  &lt;dbl&gt; 2010, 2010, 2010, 2010, 2010, 2010, 2010, 2010, 2010, 2010, 201…
+## $ month &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
 ## $ day   &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, …
 ## $ tmax  &lt;dbl&gt; 32.6, 33.4, 24.8, 29.4, 27.0, 24.4, 29.6, 29.4, 29.6, 31.8, 31.…
 ## $ tmin  &lt;dbl&gt; 17.9, 21.4, 21.6, 23.4, 23.2, 21.8, 18.0, 19.4, 21.8, 22.4, 22.…</code></pre>
@@ -813,18 +803,16 @@ glimpse(dados_sm_tbl_w)</code></pre>
 <li>Acrescente uma nova variável <code>tmed</code> aos dados de temperatura diária arrumados, obtida da média diária da <code>tmax</code> e <code>tmin</code>.</li>
 </ol>
 <pre class="r"><code># Acrescentando uma nova variável tmed
-dados_sm_m &lt;- mutate(dados_sm_tbl_w, tmed = (tmax + tmin)/2)
-
-# outra forma
-#dados_sm_tbl_w %&gt;%
-#  mutate(., tmed = (tmax + tmin)/2)
+dados_sm_m &lt;- 
+  dados_sm_wider %&gt;%
+  mutate(., tmed = (tmax + tmin)/2)
 
 glimpse(dados_sm_m)</code></pre>
 <pre><code>## Rows: 186
 ## Columns: 7
 ## $ id    &lt;chr&gt; &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, …
-## $ month &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
 ## $ year  &lt;dbl&gt; 2010, 2010, 2010, 2010, 2010, 2010, 2010, 2010, 2010, 2010, 201…
+## $ month &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
 ## $ day   &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, …
 ## $ tmax  &lt;dbl&gt; 32.6, 33.4, 24.8, 29.4, 27.0, 24.4, 29.6, 29.4, 29.6, 31.8, 31.…
 ## $ tmin  &lt;dbl&gt; 17.9, 21.4, 21.6, 23.4, 23.2, 21.8, 18.0, 19.4, 21.8, 22.4, 22.…
@@ -840,7 +828,8 @@ glimpse(dados_sm_m)</code></pre>
 </ol>
 <pre class="r"><code># a.
 
-dados_sm_nome = dados_sm_m %&gt;%
+dados_sm_nome &lt;-
+  dados_sm_m %&gt;%
   rename(., 
        &quot;ano&quot; = year,
        &quot;mes&quot; = month,
@@ -850,8 +839,8 @@ glimpse(dados_sm_nome)</code></pre>
 <pre><code>## Rows: 186
 ## Columns: 7
 ## $ id   &lt;chr&gt; &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;…
-## $ mes  &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1…
 ## $ ano  &lt;dbl&gt; 2010, 2010, 2010, 2010, 2010, 2010, 2010, 2010, 2010, 2010, 2010…
+## $ mes  &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1…
 ## $ dia  &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 1…
 ## $ tmax &lt;dbl&gt; 32.6, 33.4, 24.8, 29.4, 27.0, 24.4, 29.6, 29.4, 29.6, 31.8, 31.2…
 ## $ tmin &lt;dbl&gt; 17.9, 21.4, 21.6, 23.4, 23.2, 21.8, 18.0, 19.4, 21.8, 22.4, 22.4…
@@ -875,6 +864,19 @@ glimpse(dados_sm_uni)</code></pre>
 ## $ tmax &lt;dbl&gt; 32.6, 33.4, 24.8, 29.4, 27.0, 24.4, 29.6, 29.4, 29.6, 31.8, 31.2…
 ## $ tmin &lt;dbl&gt; 17.9, 21.4, 21.6, 23.4, 23.2, 21.8, 18.0, 19.4, 21.8, 22.4, 22.4…
 ## $ tmed &lt;dbl&gt; 25.25, 27.40, 23.20, 26.40, 25.10, 23.10, 23.80, 24.40, 25.70, 2…</code></pre>
+<pre class="r"><code># c.
+dados_sm_filtro &lt;-
+  dados_sm_uni %&gt;%
+  filter(., is.na(tmax) | is.na(tmin))
+
+glimpse(dados_sm_filtro)</code></pre>
+<pre><code>## Rows: 5
+## Columns: 5
+## $ id   &lt;chr&gt; &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;
+## $ data &lt;date&gt; NA, NA, NA, NA, NA
+## $ tmax &lt;dbl&gt; NA, NA, NA, NA, NA
+## $ tmin &lt;dbl&gt; NA, NA, NA, NA, NA
+## $ tmed &lt;dbl&gt; NA, NA, NA, NA, NA</code></pre>
 <hr />
 <ol start="6" style="list-style-type: decimal">
 <li>A amostra de dados abaixo possui medidas a cada 6 horas de uma estação meteorológica de superfície. Reestruture os dados no formato &quot;arrumado&quot; e junte as informações de data e horário em uma única variável da classe <em>POSIXct</em> denominada <code>date</code>.</li>
@@ -1030,52 +1032,198 @@ datas_comp_tb &lt;- as_tibble(datas_comp)
 ## 3 2018-07-15 0.392
 ## 4 2018-07-18 0.327</code></pre>
 <pre class="r"><code># a)
-datas_merj &lt;- full_join(
+datas_full &lt;- full_join(
   x = datas_comp_tb, 
   y = datas_obs_tb,
   by = &quot;date&quot;)
 
-datas_merj &lt;- datas_merj[order(as.Date(datas_merj$date, format=&quot;%Y-%m/%d&quot;)),]
+datas_full &lt;- datas_full[order(as.Date(datas_full$date, format=&quot;%Y-%m/%d&quot;)),]
 
-glimpse(datas_merj)</code></pre>
+glimpse(datas_full)</code></pre>
 <pre><code>## Rows: 8
 ## Columns: 2
 ## $ date  &lt;date&gt; 2018-07-13, 2018-07-14, 2018-07-15, 2018-07-16, 2018-07-17, 20…
 ## $ theta &lt;dbl&gt; 0.3295812, 0.4123798, 0.3917322, NA, NA, 0.3268883, NA, NA</code></pre>
-<pre class="r"><code>head(datas_merj)</code></pre>
-<pre><code>## # A tibble: 6 x 2
-##   date        theta
-##   &lt;date&gt;      &lt;dbl&gt;
-## 1 2018-07-13  0.330
-## 2 2018-07-14  0.412
-## 3 2018-07-15  0.392
-## 4 2018-07-16 NA    
-## 5 2018-07-17 NA    
-## 6 2018-07-18  0.327</code></pre>
 <pre class="r"><code># b)
 
-datas_merj_left &lt;- left_join(
+datas_left &lt;- left_join(
   x = datas_comp_tb, 
   y = datas_obs_tb,
   by = &quot;date&quot;)
 
-glimpse(datas_merj_left)</code></pre>
+datas_left &lt;- datas_left[order(as.Date(datas_left$date, format=&quot;%Y-%m/%d&quot;)),]
+
+glimpse(datas_left)</code></pre>
 <pre><code>## Rows: 7
 ## Columns: 2
 ## $ date  &lt;date&gt; 2018-07-14, 2018-07-15, 2018-07-16, 2018-07-17, 2018-07-18, 20…
 ## $ theta &lt;dbl&gt; 0.4123798, 0.3917322, NA, NA, 0.3268883, NA, NA</code></pre>
-<pre class="r"><code>(datas_merj_left)</code></pre>
-<pre><code>## # A tibble: 7 x 2
-##   date        theta
-##   &lt;date&gt;      &lt;dbl&gt;
-## 1 2018-07-14  0.412
-## 2 2018-07-15  0.392
-## 3 2018-07-16 NA    
-## 4 2018-07-17 NA    
-## 5 2018-07-18  0.327
-## 6 2018-07-19 NA    
-## 7 2018-07-20 NA</code></pre>
-<pre class="r"><code># Os dados já estão em ordem cronológica</code></pre>
+<hr />
+<ol start="9" style="list-style-type: decimal">
+<li>Utilizando os dados horários de estações meteorológicas automáticas (EMA) do RS (<code>dados_rs_08_16</code>), determine a data inicial, final e o período de dados (em anos) de cada estação (identificada pela variável <code>site</code>).</li>
+</ol>
+<pre class="r"><code># estrutura dos dados
+str(dados_rs_08_16)
+
+# coersão do data frame para tibble
+dados_rs_08_16_tb &lt;- as_tibble(dados_rs_08_16)
+(dados_rs_08_16_tb)
+
+# agrupando em função de cada estação
+dados_rs_new &lt;- dados_rs_08_16_tb %&gt;%
+  group_by(., site) %&gt;%
+  summarise(.,
+            inicio = date[which.min(date)],
+            final = date[which.max(date)],
+            # conta quantos anos tem
+            period = n()/8760) %&gt;%
+  glimpse(dados_rs_new)</code></pre>
+<hr />
+<ol start="10" style="list-style-type: decimal">
+<li>Determine a porcentagem de dados válidos (ou seja, não faltantes) de cada variável para cada EMA. Aproxime os valores para números inteiros.</li>
+</ol>
+<pre class="r"><code>dados_rs_08_16_tb &lt;- as_tibble(dados_rs_08_16)
+
+dados_rs_novo &lt;-
+  dados_rs_08_16_tb %&gt;%
+  group_by(., site) %&gt;%
+  summarise(.,
+             tair = as.integer((sum(!is.na(tair))/n())*100),
+             rh = as.integer((sum(!is.na(rh))/n())*100),
+             prec = as.integer((sum(!is.na(prec))/n())*100),
+             rg = as.integer((sum(!is.na(rg))/n())*100),
+             ws = as.integer((sum(!is.na(ws))/n())*100)
+             )</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre class="r"><code>glimpse(dados_rs_novo)</code></pre>
+<pre><code>## Rows: 42
+## Columns: 6
+## $ site &lt;chr&gt; &quot;A801&quot;, &quot;A802&quot;, &quot;A803&quot;, &quot;A804&quot;, &quot;A805&quot;, &quot;A808&quot;, &quot;A809&quot;, &quot;A810&quot;, …
+## $ tair &lt;int&gt; 99, 93, 96, 80, 93, 96, 97, 86, 97, 96, 96, 94, 97, 95, 96, 95, …
+## $ rh   &lt;int&gt; 99, 86, 96, 77, 93, 91, 97, 86, 95, 96, 96, 94, 97, 95, 96, 95, …
+## $ prec &lt;int&gt; 99, 93, 96, 80, 93, 96, 97, 87, 95, 96, 97, 93, 97, 93, 96, 90, …
+## $ rg   &lt;int&gt; 52, 49, 51, 44, 49, 50, 48, 46, 51, 51, 51, 49, 51, 50, 51, 50, …
+## $ ws   &lt;int&gt; 99, 93, 95, 80, 93, 96, 96, 87, 97, 97, 96, 94, 97, 96, 75, 95, …</code></pre>
+<hr />
+<ol start="11" style="list-style-type: decimal">
+<li>Com o resultado da questão anterior, adicione uma variável indicativa da porcentagem média de observações válidas de todas variáveis. Ordene esta tabela em ordem decrescente da disponibilidade média de observações.</li>
+</ol>
+<pre class="r"><code>dados_rs_disp &lt;-
+  dados_rs_novo %&gt;%
+  group_by(., site) %&gt;%
+  mutate(.,
+         disp_med = (tair+rh+prec+rg+ws)/5) %&gt;%
+  arrange(., desc(disp_med))
+  
+glimpse(dados_rs_disp)</code></pre>
+<pre><code>## Rows: 42
+## Columns: 7
+## Groups: site [42]
+## $ site     &lt;chr&gt; &quot;A894&quot;, &quot;A886&quot;, &quot;A801&quot;, &quot;A884&quot;, &quot;A839&quot;, &quot;A889&quot;, &quot;A879&quot;, &quot;A85…
+## $ tair     &lt;int&gt; 100, 99, 99, 99, 99, 100, 98, 98, 98, 98, 98, 97, 96, 97, 96…
+## $ rh       &lt;int&gt; 100, 99, 99, 99, 99, 94, 98, 98, 98, 98, 98, 97, 96, 97, 96,…
+## $ prec     &lt;int&gt; 100, 99, 99, 99, 99, 100, 98, 98, 98, 98, 95, 97, 96, 97, 96…
+## $ rg       &lt;int&gt; 53, 55, 52, 52, 50, 53, 52, 51, 51, 52, 52, 51, 56, 50, 51, …
+## $ ws       &lt;int&gt; 99, 99, 99, 99, 99, 99, 98, 98, 98, 95, 98, 97, 95, 97, 97, …
+## $ disp_med &lt;dbl&gt; 90.4, 90.2, 89.6, 89.6, 89.2, 89.2, 88.8, 88.6, 88.6, 88.2, …</code></pre>
+<hr />
+<ol start="12" style="list-style-type: decimal">
+<li>Para a EMA de Santa Maria (ver <code>info_emas_rs_08_16</code>) obtenha o ciclo diurno médio da temperatura do ar e a porcentagem de dados válidos usados para compor a <code>tair</code> média de cada hora.</li>
+</ol>
+<pre class="r"><code>ema_sm &lt;-
+  dados_rs_08_16_tb %&gt;%
+  filter(str_detect(site, &quot;A803&quot;)) %&gt;%
+  select(., site, date, tair) %&gt;%
+  mutate(., hora = hour(date))
+
+#glimpse(ema_sm)
+
+ema_sm_new &lt;-
+  ema_sm %&gt;%
+  group_by(., hora) %&gt;%
+  summarise(.,
+            tair_med = mean(tair, na.rm = TRUE),
+            tair_disp = (sum(!is.na(tair))/n())*100
+  )</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre class="r"><code>glimpse(ema_sm_new)</code></pre>
+<pre><code>## Rows: 24
+## Columns: 3
+## $ hora      &lt;int&gt; 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 1…
+## $ tair_med  &lt;dbl&gt; 17.26933, 16.87304, 16.52604, 16.21440, 15.94268, 15.73293,…
+## $ tair_disp &lt;dbl&gt; 96.68384, 96.55505, 96.42627, 96.26529, 96.13651, 96.10431,…</code></pre>
+<hr />
+<ol start="13" style="list-style-type: decimal">
+<li>Com os dados de temperatura do ar (<code>tair</code>) filtrados para EMA de Santa Maria (a) selecione somente os dias observações válidas nas 24 horas (dias completos, ou seja, sem nenhuma falha nas 24 h). A partir destes dados (b) obtenha a frequência de ocorrência da temperatura mínima para cada horário do dia. (c) Apresente a tabela de resultados em ordem decrescente da frequência de ocorrência.</li>
+</ol>
+<pre class="r"><code># a.
+ema_sm_tair &lt;-
+  dados_rs_08_16_tb %&gt;%
+  filter(str_detect(site, &quot;A803&quot;)) %&gt;%
+  select(., site, date, tair) %&gt;%
+  mutate(., dia = floor_date(date, unit = &quot;day&quot;)) 
+
+sm_tair &lt;-
+  ema_sm_tair %&gt;%
+  group_by(., dia) %&gt;%
+  summarise(.,
+            tair_val = as.integer((sum(!is.na(tair))/24)*100)
+)</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+<pre class="r"><code># os dias completos são aqueles com tair_val = 100
+dias_completos &lt;-
+  sm_tair %&gt;%
+  filter(., tair_val==100)
+  
+glimpse(dias_completos)</code></pre>
+<pre><code>## Rows: 2,945
+## Columns: 2
+## $ dia      &lt;dttm&gt; 2008-01-01, 2008-01-02, 2008-01-03, 2008-01-04, 2008-01-05,…
+## $ tair_val &lt;int&gt; 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, …</code></pre>
+<pre class="r"><code>glimpse(tail(dias_completos))</code></pre>
+<pre><code>## Rows: 6
+## Columns: 2
+## $ dia      &lt;dttm&gt; 2016-12-25, 2016-12-26, 2016-12-27, 2016-12-28, 2016-12-29,…
+## $ tair_val &lt;int&gt; 100, 100, 100, 100, 100, 100</code></pre>
+<pre class="r"><code># b.
+ema_sm_tair &lt;- 
+  ema_sm_tair  %&gt;% 
+  mutate(., hora = hour(date)) 
+
+# determinando para cada dia o horário em que a temperatura mínima ocorreu
+freq_tmin &lt;-
+  ema_sm_tair  %&gt;% 
+  group_by(., dia) %&gt;%
+  summarise(.,
+            hh = hora[which.min(tair)])</code></pre>
+<pre><code>## `summarise()` regrouping output by &#39;dia&#39; (override with `.groups` argument)</code></pre>
+<pre class="r"><code>nrow(freq_tmin)</code></pre>
+<pre><code>## [1] 3031</code></pre>
+<pre class="r"><code># determinando para cada hora quantas vezes a temperatura mínima ocorreu
+freq_htmin &lt;-
+  freq_tmin  %&gt;% 
+  group_by(., hh) %&gt;%
+  count(hh) %&gt;%
+  rename(., &quot;h_tmin&quot; = hh)
+
+glimpse(freq_htmin)</code></pre>
+<pre><code>## Rows: 24
+## Columns: 2
+## Groups: h_tmin [24]
+## $ h_tmin &lt;int&gt; 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, …
+## $ n      &lt;int&gt; 78, 64, 94, 126, 192, 317, 730, 568, 205, 36, 17, 9, 8, 4, 8, …</code></pre>
+<pre class="r"><code># c.
+# ordem decrescente da frequência de ocorrência
+freq_htmin_dec &lt;- 
+  freq_htmin %&gt;%
+  arrange(., desc(n))
+
+glimpse(freq_htmin_dec)</code></pre>
+<pre><code>## Rows: 24
+## Columns: 2
+## Groups: h_tmin [24]
+## $ h_tmin &lt;int&gt; 6, 7, 23, 5, 8, 4, 3, 2, 0, 1, 22, 9, 21, 10, 20, 11, 12, 14, …
+## $ n      &lt;int&gt; 730, 568, 452, 317, 205, 192, 126, 94, 78, 64, 52, 36, 30, 17,…</code></pre>
 </div>
 
 

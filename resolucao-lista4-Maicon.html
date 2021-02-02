@@ -865,11 +865,11 @@ glimpse(dados_sm_uni)</code></pre>
 ## $ tmin &lt;dbl&gt; 17.9, 21.4, 21.6, 23.4, 23.2, 21.8, 18.0, 19.4, 21.8, 22.4, 22.4…
 ## $ tmed &lt;dbl&gt; 25.25, 27.40, 23.20, 26.40, 25.10, 23.10, 23.80, 24.40, 25.70, 2…</code></pre>
 <pre class="r"><code># c.
-dados_sm_filtro &lt;-
+dados_sm_filtro_na &lt;-
   dados_sm_uni %&gt;%
   filter(., is.na(tmax) | is.na(tmin))
 
-glimpse(dados_sm_filtro)</code></pre>
+glimpse(dados_sm_filtro_na)</code></pre>
 <pre><code>## Rows: 5
 ## Columns: 5
 ## $ id   &lt;chr&gt; &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;, &quot;83936&quot;
@@ -927,10 +927,8 @@ dados_zorra_s &lt;- separate(
   data = dados_zorra_tbl,
   col = temp.h,
   sep = &quot;.&quot;,
-  into = c(&quot;tmax&quot;, &quot;tmin&quot;, &quot;hora&quot;)
-)</code></pre>
-<pre><code>## Warning: Expected 3 pieces. Additional pieces discarded in 32 rows [1, 2, 3, 4,
-## 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, ...].</code></pre>
+  into = c(&quot;tmax&quot;, &quot;tmin&quot;, &quot;hora&quot;), convert = TRUE, remove = FALSE,
+  extra = &quot;merge&quot;)</code></pre>
 <hr />
 <ol start="7" style="list-style-type: decimal">
 <li>Faça uma junção da tabela de dados de informações das estações de poluição (<code>estacoes</code>, dada abaixo) com os períodos de duração de poluição crítica (<code>poluentes</code>). A tabela resultante deve conter somente estações que tenham coordenadas espaciais e medidas de poluentes válidas. Estrutura da tabela resultante:</li>
@@ -1205,24 +1203,16 @@ ema_sm_tair &lt;-
   ema_sm_tair  %&gt;% 
   mutate(., hora = hour(date)) 
 
-# determinando para cada dia o horário em que a temperatura mínima ocorreu
 freq_tmin &lt;-
   ema_sm_tair  %&gt;% 
   group_by(., dia) %&gt;%
   summarise(.,
-            hh = hora[which.min(tair)],
-            .groups = &#39;drop&#39;)
+            h_tmin = hora[which.min(tair)],
+            .groups = &#39;drop&#39;) %&gt;%
+  group_by(., h_tmin) %&gt;%
+  count(h_tmin) 
 
-nrow(freq_tmin)</code></pre>
-<pre><code>## [1] 3031</code></pre>
-<pre class="r"><code># determinando para cada hora quantas vezes a temperatura mínima ocorreu
-freq_htmin &lt;-
-  freq_tmin  %&gt;% 
-  group_by(., hh) %&gt;%
-  count(hh) %&gt;%
-  rename(., &quot;h_tmin&quot; = hh)
-
-glimpse(freq_htmin)</code></pre>
+glimpse(freq_tmin)</code></pre>
 <pre><code>## Rows: 24
 ## Columns: 2
 ## Groups: h_tmin [24]
@@ -1231,7 +1221,7 @@ glimpse(freq_htmin)</code></pre>
 <pre class="r"><code># c.
 # ordem decrescente da frequência de ocorrência
 freq_htmin_dec &lt;- 
-  freq_htmin %&gt;%
+  freq_tmin %&gt;%
   arrange(., desc(n))
 
 glimpse(freq_htmin_dec)</code></pre>

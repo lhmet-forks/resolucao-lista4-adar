@@ -374,8 +374,8 @@ dados_zorra_s <- separate(
   data = dados_zorra_tbl,
   col = temp.h,
   sep = ".",
-  into = c("tmax", "tmin", "hora")
-)
+  into = c("tmax", "tmin", "hora"), convert = TRUE, remove = FALSE,
+  extra = "merge")
 
 ```
 
@@ -620,24 +620,16 @@ ema_sm_tair <-
   ema_sm_tair  %>% 
   mutate(., hora = hour(date)) 
 
-# determinando para cada dia o horário em que a temperatura mínima ocorreu
 freq_tmin <-
   ema_sm_tair  %>% 
   group_by(., dia) %>%
   summarise(.,
-            hh = hora[which.min(tair)],
-            .groups = 'drop')
+            h_tmin = hora[which.min(tair)],
+            .groups = 'drop') %>%
+  group_by(., h_tmin) %>%
+  count(h_tmin) 
 
-nrow(freq_tmin)
-
-# determinando para cada hora quantas vezes a temperatura mínima ocorreu
-freq_htmin <-
-  freq_tmin  %>% 
-  group_by(., hh) %>%
-  count(hh) %>%
-  rename(., "h_tmin" = hh)
-
-glimpse(freq_htmin)
+glimpse(freq_tmin)
 
 ```
 
@@ -646,7 +638,7 @@ glimpse(freq_htmin)
 # c.
 # ordem decrescente da frequência de ocorrência
 freq_htmin_dec <- 
-  freq_htmin %>%
+  freq_tmin %>%
   arrange(., desc(n))
 
 glimpse(freq_htmin_dec)

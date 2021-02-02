@@ -353,6 +353,7 @@ $ tmin <dbl> 16.0, 13.5, 18.2, 24.1, 19.0, 13.7, 16.3, 22.3, 21.0, 14.1, 17.2, 2
 
 
 ```{r}
+# Não consegui separar as colunas. Nada que tentei deu certo,a não ser formas bem grosseiras.  
 
 # verificando a estrutura dos dados
 str(dados_zorra)
